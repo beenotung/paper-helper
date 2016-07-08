@@ -18,12 +18,21 @@ function add_text_field():HTMLInputElement {
   return <HTMLInputElement>e;
 }
 
+let button = create_and_add_element('button');
+{
+  button.textContent = 'reset';
+  button.onclick = ()=> {
+    localStorage.removeItem('input');
+    window.location.reload();
+  };
+}
 let input = add_text_field();
 let output = create_and_add_element('div');
 
 let blacklist = [
   'This content downloaded from'
-  , 'All use subject to http://about'
+  , 'All use subject to http'
+  // , 'AMERICAN SPEECH 71.1 (1996)'
 ];
 
 function process(input:string):string {
@@ -49,15 +58,72 @@ const throw_error = (cons, msg)=> {
 
 const tail = xs=>xs.length == 0 ? [] : xs.slice(1);
 const head = xs=>xs.length == 0 ? throw_error(ReferenceError, 'array is empty') : xs[0];
+const group_number = (xs, num)=> {
+  let res = [];
+  let re = [];
+  xs.forEach(x=> {
+    re.push(x);
+    if (xs.length >= num) {
+      res.push(re);
+      re = []
+    }
+  })
+};
+const group_ = (xs, op)=> {
+  let type = typeof op;
+  return eval('group_' + type)(xs, op);
+};
+const group = (xs, op)=>xs.length == 0 ? [] : group_(xs, op);
+
+const get_or_init = (map:Map, key, init?)=> {
+  if (map.has(key))
+    return map.get(key);
+  else {
+    map.set(key, init);
+    return init;
+  }
+};
+
+const sort = (xs_, f:(a, b)=>number):any[]=> {
+  let xs = Array.from(xs_);
+  // console.debug('sort', xs.length);
+  if (xs.length < 2)
+    return xs;
+  let p = 0;//Math.round(Math.random() * xs.length);
+  let v = xs[p];
+  let compare_result = xs.map(x=>[x, f(x, v)]);
+  let left = compare_result.filter(x=>x[1] == -1).map(x=>x[0]);
+  let center = compare_result.filter(x=>x[1] == 0).map(x=>x[0]);
+  let right = compare_result.filter(x=>x[1] == 1).map(x=>x[0]);
+  // console.debug('left', left.length, 'center', center.length, 'right', right.length);
+  return sort(left, f).concat(center).concat(sort(right, f));
+};
+
+const loop = (n, f)=> {
+  for (let i = 0; i < n; i++)f(i)
+};
 
 function update() {
+
   localStorage.setItem('input', input.value);
+  const word_count = new Map();
   let lines = input.value.split('\n');
   let lastline = '  ';
   let paras = [];
   lines
     .filter(line=>!blacklist.some(x=>line.indexOf(x) != -1))
     .forEach(line=> {
+      // line.split(' ')
+      //   .filter(x=>x)
+      //   .forEach(x=> {
+      //     let c = get_or_init(word_count, x, 0);
+      //     word_count.set(x, c + 1);
+      //   });
+      {
+        let c = get_or_init(word_count, line, 0);
+        word_count.set(line, c + 1);
+      }
+      // console.debug('word_count', word_count);
       // console.debug(line);
       lastline += ' ' + line;
       if (lastChar(line) == '.') {
@@ -65,18 +131,27 @@ function update() {
         lastline = '  ';
       }
     });
+  let rank = sort(word_count /*Array.from(word_count).filter(xs=>xs[0].length > 5)*/, (a, b)=> {
+    let res = a[1] == b[1] ? 0 : a[1] > b[1] ? -1 : 1;
+    // console.debug(a[1], b[1], res);
+    return res;
+  }).filter(x=>x[1] > 1);
+  rank.forEach(x=>console.debug(x));
+  // loop(10, x=>console.debug(rank[x]));
   output.innerHTML = '';
 
 
   paras.forEach(para=> {
     let p = create_and_add_element('p');
+    p.style.marginBottom = '10vh';
     const add = (string, color = 'black')=> {
       let e = create_and_add_element('span', p);
       e.innerText = string;
       e.style.color = color;
-      e.style.fontFamily='sans-serif'
+      // e.style.fontFamily='sans-serif'
+      e.style.fontFamily = 'monospace';
     };
-    let sentenses = para.split('.');
+    let sentenses = para.split('.').map(x=>x + '.');
     add(head(sentenses), 'red');
     tail(sentenses).forEach(sentense=>add(sentense));
   });
@@ -85,8 +160,18 @@ function update() {
 input.onchange = update;
 input.onkeydown = update;
 
-input.value = localStorage.getItem('input');
-update();
+async function init() {
+  let s = localStorage.getItem('input');
+  if (!s) {
+    s = await fetch('text.txt').then(x=>x.text());
+    // console.log('get from text.txt', s);
+  }
+  localStorage.setItem('input', s);
+  input.value = s;
+  update();
+}
+
+init();
 
 // printline("end");
 

@@ -135,7 +135,7 @@ gulp.task('script', (done)=> {
     .pipe(filesize()) // raw files
     .pipe(ts({
       target: 'es6'
-      , noImplicitAny: true
+      , noImplicitAny: false
       , out: 'bundle.es6.js'
       , allowJs: true
     }))

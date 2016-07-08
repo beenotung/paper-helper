@@ -27,7 +27,7 @@ declare type Response={
   blob():any;
 };
 
-declare function fetch(url:string, option:any):Promise<Response>;
+declare function fetch(url:string, option?:any):Promise<Response>;
 
 type NOOP=()=> void;
 
