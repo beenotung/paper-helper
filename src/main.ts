@@ -143,7 +143,7 @@ function update() {
 
 
   paras.forEach(para=> {
-    let p = create_and_add_element('p');
+    let p = create_and_add_element('p', output);
     p.style.marginTop = '2vh';
     p.style.marginBottom = '8vh';
     const add = (string, color = 'black')=> {
