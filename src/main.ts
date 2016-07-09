@@ -32,7 +32,8 @@ let output = create_and_add_element('div');
 let blacklist = [
   'This content downloaded from'
   , 'All use subject to http'
-  // , 'AMERICAN SPEECH 71.1 (1996)'
+  , 'AMERICAN SPEECH 71.1 (1996)'
+  , '17 JULY 2015 • VOL 349 ISSUE 6245'
 ];
 
 function process(input:string):string {
@@ -75,7 +76,7 @@ const group_ = (xs, op)=> {
 };
 const group = (xs, op)=>xs.length == 0 ? [] : group_(xs, op);
 
-const get_or_init = (map:Map, key, init?)=> {
+const get_or_init = <K,V>(map:Map<K,V>, key:K, init?:V)=> {
   if (map.has(key))
     return map.get(key);
   else {
@@ -126,7 +127,7 @@ function update() {
       // console.debug('word_count', word_count);
       // console.debug(line);
       lastline += ' ' + line;
-      if (lastChar(line) == '.') {
+      if (['.', '?'].indexOf(lastChar(line)) != -1) {
         paras.push(lastline);
         lastline = '  ';
       }
@@ -143,7 +144,8 @@ function update() {
 
   paras.forEach(para=> {
     let p = create_and_add_element('p');
-    p.style.marginBottom = '10vh';
+    p.style.marginTop = '2vh';
+    p.style.marginBottom = '8vh';
     const add = (string, color = 'black')=> {
       let e = create_and_add_element('span', p);
       e.innerText = string;
@@ -152,6 +154,14 @@ function update() {
       e.style.fontFamily = 'monospace';
     };
     let sentenses = para.split('.').map(x=>x + '.');
+    sentenses = sentenses.map(x=> {
+      if (x.indexOf('- ') != -1) {
+        // console.debug('- detected', x);
+        return x.replace('- ', '');
+      } else {
+        return x;
+      }
+    });
     add(head(sentenses), 'red');
     tail(sentenses).forEach(sentense=>add(sentense));
   });
@@ -161,13 +171,12 @@ input.onchange = update;
 input.onkeydown = update;
 
 async function init() {
-  let s = localStorage.getItem('input');
-  if (!s) {
-    s = await fetch('text.txt').then(x=>x.text());
-    // console.log('get from text.txt', s);
+  try {
+    localStorage.setItem('input', await fetch('text.txt').then(x=>x.text()))
+  } catch (e) {
+    console.error('failed to get text.txt');
   }
-  localStorage.setItem('input', s);
-  input.value = s;
+  input.value = localStorage.getItem('input');
   update();
 }
 
